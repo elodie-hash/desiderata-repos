@@ -37,6 +37,11 @@
   td.case .code { font-weight:700; font-size:12px; line-height:1.2; }
   td.case .mention { writing-mode:vertical-rl; transform:rotate(180deg); font-size:10px; max-height:58px; overflow:hidden; margin:2px auto 0; white-space:nowrap; }
   td.total { font-weight:700; font-size:15px; background:var(--bleu-clair); }
+  td.evt { height:110px; min-width:38px; cursor:pointer; vertical-align:middle; background:#fffaf0; padding:2px 1px; }
+  td.evt.we { background:var(--gris-we); }
+  td.evt.plein { background:#ffe9a8; }
+  td.evt:hover { outline:2px solid var(--bleu); outline-offset:-2px; }
+  .evtTexte { writing-mode:vertical-rl; transform:rotate(180deg); font-size:11px; font-weight:600; max-height:104px; overflow:hidden; margin:0 auto; white-space:nowrap; }
   .ajout { display:flex; gap:8px; justify-content:center; padding:4px 12px 16px; flex-wrap:wrap; }
   .ajout input { padding:6px 10px; border:1px solid var(--bord); border-radius:6px; font:inherit; min-width:220px; }
   .voile { position:fixed; inset:0; background:rgba(20,30,50,.45); display:none; align-items:center; justify-content:center; z-index:10; }
@@ -93,6 +98,21 @@
   </div>
 </div>
 
+<!-- Fenêtre de saisie d'un événement -->
+<div class="voile" id="voileEvt">
+  <div class="boite">
+    <h3>Événement du jour</h3>
+    <div class="sous" id="evtSous"></div>
+    <div class="champ"><label for="evtTexte">Événement (ex. instruction collective)</label><input id="evtTexte" type="text" maxlength="60"></div>
+    <div class="champ"><label for="evtFin">Appliquer jusqu'au (inclus)</label><input id="evtFin" type="date"></div>
+    <div class="actions">
+      <button class="danger" id="evtEffacer">Effacer</button>
+      <button id="evtAnnuler">Annuler</button>
+      <button class="plein" id="evtOk">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 <!-- Fenêtre de confirmation de suppression -->
 <div class="voile" id="voileSuppr">
   <div class="boite">
@@ -127,6 +147,9 @@ let debutAffiche = DEBUT;   // lundi de la première semaine affichée
 let saisie = null;          // case en cours de saisie
 let codeChoisi = '';
 let suppr = null;
+let evt = new Map();        // jourMs -> {id, texte}
+let evtSaisie = null;
+let evtTableOk = true;
 
 const $ = id => document.getElementById(id);
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
@@ -165,6 +188,17 @@ async function charger() {
         mention: (dt.Mention && dt.Mention[i]) || ''
       });
     });
+    evt = new Map();
+    try {
+      const et = await grist.docApi.fetchTable('Evenements');
+      evtTableOk = true;
+      et.id.forEach((id, i) => {
+        const d = et.Date ? et.Date[i] : null;
+        if (d == null) return;
+        const ms = Math.floor(d * 1000 / DAY) * DAY;
+        evt.set(ms, { id, texte: (et.Evenement && et.Evenement[i]) || '' });
+      });
+    } catch (e) { evtTableOk = false; }
     erreur('');
     render();
   } catch (e) {
@@ -180,6 +214,20 @@ function render() {
   const t = $('tableau');
   t.textContent = '';
   const thead = el('thead');
+
+  const re = el('tr');
+  re.appendChild(el('th', 'coin', 'Événements'));
+  for (let i = 0; i < 28; i++) {
+    const ms = debutAffiche + i * DAY;
+    const we = (i % 7) >= 5;
+    const e = evt.get(ms);
+    const td = el('td', 'evt' + (we ? ' we' : '') + (e && e.texte ? ' plein' : ''));
+    if (e && e.texte) { td.appendChild(el('div', 'evtTexte', e.texte)); td.title = e.texte; }
+    td.onclick = () => ouvrirEvt(ms);
+    re.appendChild(td);
+  }
+  re.appendChild(el('th', 'fin'));
+  thead.appendChild(re);
 
   const r1 = el('tr');
   const coin = el('th', 'coin', 'Militaire'); coin.rowSpan = 2; r1.appendChild(coin);
