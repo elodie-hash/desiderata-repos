@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Desiderata de repos</title>
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<style>
+  :root {
+    --blue-900: #12307a;
+    --blue-700: #1d4ed8;
+    --blue-500: #3b82f6;
+    --blue-100: #dbeafe;
+    --blue-50:  #eff6ff;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --line: #dbe4f3;
+    --ok: #15803d;
+    --ok-bg: #dcfce7;
+    --err: #b91c1c;
+    --err-bg: #fee2e2;
+    --we: #e2e8f0;
+    --we-head: #cbd5e1;
+
+    --c-R-bg: #86efac;    --c-R-fg: #14532d;
+    --c-RR-bg: #15803d;   --c-RR-fg: #ffffff;
+    --c-P-bg: #ef4444;    --c-P-fg: #ffffff;
+    --c-INST-bg: #fde047; --c-INST-fg: #713f12;
+    --c-SEP-bg: #60a5fa;  --c-SEP-fg: #0b2a6b;
+    --c-RPC-bg: #0f172a;  --c-RPC-fg: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 14px;
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    color: var(--ink);
+    background: linear-gradient(180deg, var(--blue-50), #fff 60%);
+  }
+
+  /* ---------- Encarts ---------- */
+  .card {
+    margin-bottom: 16px;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, .06);
+  }
+  .muted { font-size: 12px; color: var(--muted); }
+
+  /* ---------- En-tête ---------- */
+  .card.banner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    text-align: center;
+    background: linear-gradient(135deg, var(--blue-900), var(--blue-700) 60%, var(--blue-500));
+    border: 0;
+    box-shadow: 0 6px 18px rgba(29, 78, 216, .30);
+  }
+  .banner h1 { margin: 0; font-size: 24px; letter-spacing: .06em; color: #fff; }
+  .banner .sub { margin-top: 2px; font-size: 13px; color: rgba(255, 255, 255, .8); text-transform: capitalize; }
+  .banner-tools { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 12px; }
+  .banner .muted { color: rgba(255, 255, 255, .8); }
+  @media (min-width: 760px) {
+    .banner-tools { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); margin-top: 0; }
+  }
+  .btn-soft {
+    padding: 7px 14px;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    background: var(--blue-50);
+    color: var(--blue-700);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .12s;
+  }
+  .btn-soft:hover { border-color: var(--blue-500); background: #fff; }
+  .banner .btn-soft { background: rgba(255, 255, 255, .18); color: #fff; border-color: rgba(255, 255, 255, .45); }
+  .banner .btn-soft:hover { background: rgba(255, 255, 255, .32); }
+
+  /* ---------- Navigation des tranches ---------- */
+  .nav { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .btn-arrow {
+    width: 52px; height: 44px;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--blue-700), var(--blue-500));
+    color: #fff;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(29, 78, 216, .30);
+    transition: transform .1s, box-shadow .1s;
+  }
+  .btn-arrow:hover { transform: translateY(-1px); box-shadow: 0 5px 12px rgba(29, 78, 216, .38); }
+  .nav-title { flex: 1; min-width: 220px; text-align: center; }
+  .nav-title b { display: block; font-size: 18px; color: var(--blue-900); }
+  .nav-title span { font-size: 13px; color: var(--muted); }
+  .search {
+    padding: 8px 12px;
+    font: inherit;
+    font-size: 13px;
+    background: var(--blue-50);
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    outline: none;
+    width: 190px;
+  }
+  .search:focus { background: #fff; border-color: var(--blue-500); box-shadow: 0 0 0 3px rgba(59, 130, 246, .20); }
+
+  /* ---------- Légende ---------- */
+  .legend { display: flex; gap: 8px 14px; flex-wrap: wrap; align-items: center; margin-top: 14px; font-size: 12px; color: var(--muted); }
+  .chip {
+    display: inline-block;
+    min-width: 38px;
+    padding: 3px 9px;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 800;
+    font-size: 12px;
+    border: 1px solid rgba(15, 23, 42, .12);
+  }
+  .chip.R    { background: var(--c-R-bg);    color: var(--c-R-fg); }
+  .chip.RR   { background: var(--c-RR-bg);   color: var(--c-RR-fg); }
+  .chip.P    { background: var(--c-P-bg);    color: var(--c-P-fg); }
+  .chip.INST { background: var(--c-INST-bg); color: var(--c-INST-fg); }
+  .chip.SEP  { background: var(--c-SEP-bg);  color: var(--c-SEP-fg); }
+  .chip.RPC  { background: var(--c-RPC-bg);  color: var(--c-RPC-fg); }
+  .legend .we-sample { display: inline-block; width: 16px; height: 16px; border-radius: 4px; background: var(--we); border: 1px solid var(--we-head); vertical-align: -3px; margin-right: 4px; }
+
+  /* ---------- Tableau ---------- */
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+  table.tbl { border-collapse: separate; border-spacing: 0; font-size: 13px; }
+  .tbl th, .tbl td { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .tbl th.mon, .tbl td.mon { border-left: 2px solid #94a3b8; }
+  .tbl .wk {
+    background: var(--blue-900);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    padding: 6px 4px;
+    text-align: center;
+  }
+  .tbl .dh {
+    min-width: 44px; width: 44px;
+    padding: 5px 2px;
+    background: var(--blue-50);
+    text-align: center;
+    line-height: 1.2;
+  }
+  .tbl .dh b { display: block; font-size: 14px; color: var(--blue-900); }
+  .tbl .dh span { font-size: 11px; color: var(--muted); }
+  .tbl .dh.we { background: var(--we-head); }
+  .tbl .dh.today { background: var(--blue-700); }
+  .tbl .dh.today b, .tbl .dh.today span { color: #fff; }
+  .tbl .corner {
+    background: var(--blue-900);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    text-align: left;
+    vertical-align: middle;
+  }
+  .tbl .corner small { display: block; font-weight: 400; letter-spacing: 0; text-transform: none; opacity: .8; margin-top: 2px; }
+  .sticky-l { position: sticky; left: 0; z-index: 3; }
+  .sticky-r { position: sticky; right: 0; z-index: 3; }
+  .tbl th.corner.sticky-r { min-width: 118px; text-align: center; }
+  .tbl td.count { min-width: 118px; }
+  .tbl td.name {
+    min-width: 170px; max-width: 220px;
+    padding: 6px 12px;
+    background: #fff;
+    font-weight: 700;
+    color: var(--blue-900);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 2px 0 0 var(--line);
+  }
+  .tbl td.count {
+    min-width: 96px;
+    padding: 6px 8px;
+    background: #fff;
+    text-align: center;
+    box-shadow: -2px 0 0 var(--line);
+  }
+  .count .n { font-size: 18px; font-weight: 800; color: var(--blue-900); }
+  .count .of { font-size: 12px; color: var(--muted); }
+  .count.full .n { color: var(--err); }
+
+  td.cell {
+    width: 44px; min-width: 44px; height: 88px;
+    padding: 3px 2px;
+    vertical-align: top;
+    text-align: center;
+    background: #fff;
+    cursor: pointer;
+    transition: filter .1s;
+  }
+  td.cell.we { background: var(--we); }
+  td.cell.today { box-shadow: inset 0 0 0 2px var(--blue-500); }
+  td.cell:hover { filter: brightness(.94); }
+  td.cell .c { display: block; font-weight: 800; font-size: 14px; line-height: 1.2; }
+  td.cell .mt {
+    display: inline-block;
+    margin-top: 2px;
+    max-height: 62px;
+    font-size: 10px;
+    line-height: 1.15;
+    font-weight: 600;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  td.cell.code-R    { background: var(--c-R-bg);    color: var(--c-R-fg); }
+  td.cell.code-RR   { background: var(--c-RR-bg);   color: var(--c-RR-fg); }
+  td.cell.code-P    { background: var(--c-P-bg);    color: var(--c-P-fg); }
+  td.cell.code-INST { background: var(--c-INST-bg); color: var(--c-INST-fg); }
+  td.cell.code-SEP  { background: var(--c-SEP-bg);  color: var(--c-SEP-fg); }
+  td.cell.code-RPC  { background: var(--c-RPC-bg);  color: var(--c-RPC-fg); }
+  .empty { padding: 28px; text-align: center; color: var(--muted); font-size: 14px; }
+
+  .notice { margin-bottom: 16px; padding: 10px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; display: none; }
+  .notice.show { display: block; }
+  .notice.err { background: var(--err-bg); color: var(--err); }
+
+  /* ---------- Fenêtre de saisie ---------- */
+  .overlay {
+    position: fixed; inset: 0;
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 16px;
+    background: rgba(15, 23, 42, .45);
+    z-index: 100;
+  }
+  .overlay.show { display: flex; }
+  .modal {
+    width: 100%; max-width: 460px;
+    padding: 20px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, .35);
+    animation: pop .15s ease;
+  }
+  @keyframes pop { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+  .modal h2 { margin: 0; font-size: 18px; color: var(--blue-900); }
+  .modal .who { margin: 2px 0 16px; font-size: 13px; color: var(--muted); }
+  .modal label.field { display: block; margin-top: 14px; font-size: 13px; font-weight: 600; color: var(--blue-900); }
+  .modal input[type=text], .modal input[type=date] {
+    display: block;
+    width: 100%;
+    margin-top: 6px;
+    padding: 10px 12px;
+    font: inherit;
+    font-weight: 400;
+    color: var(--ink);
+    background: var(--blue-50);
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    outline: none;
+  }
+  .modal input:focus { background: #fff; border-color: var(--blue-500); box-shadow: 0 0 0 3px rgba(59, 130, 246, .20); }
+  .codes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 6px; }
+  .codes button {
+    padding: 12px 6px;
+    border: 3px solid transparent;
+    border-radius: 12px;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform .1s;
+  }
+  .codes button:hover { transform: translateY(-1px); }
+  .codes button.R    { background: var(--c-R-bg);    color: var(--c-R-fg); }
+  .codes button.RR   { background: var(--c-RR-bg);   color: var(--c-RR-fg); }
+  .codes button.P    { background: var(--c-P-bg);    color: var(--c-P-fg); }
+  .codes button.INST { background: var(--c-INST-bg); color: var(--c-INST-fg); }
+  .codes button.SEP  { background: var(--c-SEP-bg);  color: var(--c-SEP-fg); }
+  .codes button.RPC  { background: var(--c-RPC-bg);  color: var(--c-RPC-fg); }
+  .codes button.none { background: var(--blue-50); color: var(--muted); border-color: var(--line); grid-column: span 3; font-size: 13px; font-weight: 600; padding: 9px; }
+  .codes button.sel  { border-color: var(--blue-700); box-shadow: 0 0 0 3px rgba(59, 130, 246, .35); }
+  .modal .row { display: flex; gap: 10px; margin-top: 20px; align-items: center; flex-wrap: wrap; }
+  .btn-submit {
+    padding: 11px 22px;
+    border: 0;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--blue-700), var(--blue-500));
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(29, 78, 216, .30);
+  }
+  .btn-submit:disabled { opacity: .55; cursor: wait; }
+  .btn-cancel { padding: 11px 16px; border: 0; background: none; color: var(--muted); font: inherit; font-weight: 600; cursor: pointer; }
+  .btn-cancel:hover { color: var(--blue-900); }
+  .modal .msg { margin-top: 12px; padding: 8px 12px; border-radius: 10px; font-size: 13px; font-weight: 600; background: var(--err-bg); color: var(--err); display: none; }
+  .modal .msg.show { display: block; }
+  .toast {
+    position: fixed; right: 16px; bottom: 16px;
+    max-width: 320px;
+    padding: 12px 16px;
+    background: var(--ok);
+    color: #fff;
+    border-radius: 12px;
+    font-weight: 600;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .25);
+    opacity: 0; transform: translateY(10px);
+    pointer-events: none;
+    transition: all .2s;
+    z-index: 120;
+  }
+  .toast.show { opacity: 1; transform: none; }
+</style>
+</head>
+<body>
+
+<!-- ============ En-tête ============ -->
+<section class="card banner">
+  <div>
+    <h1>DESIDERATA DE REPOS</h1>
+    <div class="sub" id="today-label"></div>
+  </div>
+  <div class="banner-tools">
+    <span class="muted" id="updated"></span>
+    <button class="btn-soft" id="refresh">↻ Actualiser</button>
+  </div>
+</section>
+
+<div class="notice" id="notice"></div>
+
+<!-- ============ Navigation ============ -->
+<section class="card">
+  <div class="nav">
+    <button class="btn-arrow" id="prev" title="Tranche précédente" aria-label="Tranche précédente">«</button>
+    <div class="nav-title">
+      <b id="tr-label"></b>
+      <span id="tr-weeks"></span>
+    </div>
+    <button class="btn-arrow" id="next" title="Tranche suivante" aria-label="Tranche suivante">»</button>
+    <button class="btn-soft" id="tr-now">Tranche actuelle</button>
+    <input class="search" id="filter" type="text" placeholder="Rechercher un militaire…">
+  </div>
+  <div class="legend">
+    <span class="chip R">R</span>
+    <span class="chip P">P</span>
+    <span class="chip INST">INST</span>
+    <span class="chip SEP">SEP</span>
+    <span class="chip RR">RR</span>
+    <span class="chip RPC">RPC</span>
+    <span><i class="we-sample"></i>Week-end</span>
+    <span>Cliquez sur une case pour saisir un code et une mention.</span>
+  </div>
+</section>
+
+<!-- ============ Calendrier ============ -->
+<section class="card">
+  <div class="scroll"><div id="grid"></div></div>
+</section>
+
+<!-- ============ Fenêtre de saisie ============ -->
+<div class="overlay" id="overlay">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h2 id="m-title">Saisie</h2>
+    <div class="who" id="m-who"></div>
+    <div>
+      <div style="font-size:13px;font-weight:600;color:var(--blue-900)">Position</div>
+      <div class="codes" id="m-codes">
+        <button type="button" class="R"    data-code="R">R</button>
+        <button type="button" class="P"    data-code="P">P</button>
+        <button type="button" class="INST" data-code="INST">INST</button>
+        <button type="button" class="SEP"  data-code="SEP">SEP</button>
+        <button type="button" class="RR"   data-code="RR">RR</button>
+        <button type="button" class="RPC"  data-code="RPC">RPC</button>
+        <button type="button" class="none" data-code="">Aucune position</button>
+      </div>
+    </div>
+    <label class="field">Mention particulière (facultatif)
+      <input type="text" id="m-mention" maxlength="80" placeholder="Ex. journée d'instruction">
+    </label>
+    <label class="field">Appliquer jusqu'au (facultatif)
+      <input type="date" id="m-until">
+    </label>
+    <div class="msg" id="m-msg"></div>
+    <div class="row">
+      <button class="btn-submit" id="m-save">Enregistrer</button>
+      <button class="btn-cancel" id="m-cancel">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ------------------------------------------------------------------
+   Widget personnalisé Grist : DESIDERATA DE REPOS
+
+   Tables attendues (noms exacts) :
+   - Personnel : Nom (texte), Actif (oui/non, facultatif)
+   - Repos     : Militaire (référence vers Personnel), Jour (date),
+                 Code (choix ou texte), Mention (texte)
+------------------------------------------------------------------- */
+grist.ready({ requiredAccess: 'full' });
+
+const $ = (id) => document.getElementById(id);
+
+/* ---------- Paramètres ---------- */
+const START = Date.UTC(2026, 10, 2);          // 1re tranche : lundi 02/11/2026
+const TRANCHE_DAYS = 28;                      // 4 semaines
+const CODES = ['R', 'P', 'INST', 'SEP', 'RR', 'RPC'];
+const WE_CODES = ['R', 'RR', 'P', 'RPC'];     // positions comptées dans le décompte des week-ends
+const DAY_MS = 86400000;
+const JL = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+const JLONG = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+
+/* ---------- Utilitaires ---------- */
+const pad = (n) => String(n).padStart(2, '0');
+const key = (ms) => new Date(ms).toISOString().slice(0, 10);
+const fmtDM = (ms) => { const d = new Date(ms); return pad(d.getUTCDate()) + '/' + pad(d.getUTCMonth() + 1); };
+const fmtDMY = (ms) => fmtDM(ms) + '/' + new Date(ms).getUTCFullYear();
+const dow = (ms) => (new Date(ms).getUTCDay() + 6) % 7;          // lundi = 0
+function isoWeek(ms) {
+  const thu = ms + (3 - dow(ms)) * DAY_MS;
+  const jan1 = Date.UTC(new Date(thu).getUTCFullYear(), 0, 1);
+  return Math.floor((thu - jan1) / DAY_MS / 7) + 1;
+}
+function todayMs() {
+  const d = new Date();
+  return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+async function loadTable(name) {
+  const t = await grist.docApi.fetchTable(name);
+  const rows = [];
+  const n = (t.id || []).length;
+  for (let i = 0; i < n; i++) {
+    const r = {};
+    for (const k in t) r[k] = t[k][i];
+    rows.push(r);
+  }
+  return rows;
+}
+let toastTimer;
+function toast(text) {
+  const t = $('toast');
+  t.textContent = '✔ ' + text;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+function friendlyError(e) {
+  const m = (e && e.message) ? e.message : String(e);
+  if (/table|column|colonne|KeyError/i.test(m)) {
+    return 'Erreur : une table ou une colonne attendue est introuvable (' + m +
+      '). Vérifiez la table Personnel (Nom, Actif) et la table Repos (Militaire, Jour, Code, Mention).';
+  }
+  return 'Erreur : ' + m;
+}
+function showNotice(text) { const n = $('notice'); n.textContent = text; n.className = 'notice err show'; }
+function clearNotice() { $('notice').className = 'notice'; }
+
+/* ---------- État ---------- */
+let DATA = { pers: [], repos: new Map() };
+let sig = '';
+let tr = 0;                 // numéro de tranche (0 = tranche du 02/11/2026, négatif = avant)
+let filterText = '';
+
+function currentTranche() {
+  const t = todayMs();
+  return t >= START ? Math.floor((t - START) / (TRANCHE_DAYS * DAY_MS)) : 0;
+}
+
+/* ---------- Chargement ---------- */
+async function refreshAll(force) {
+  try {
+    const [pers, repos] = await Promise.all([loadTable('Personnel'), loadTable('Repos')]);
+    const s = JSON.stringify([pers, repos]);
+    clearNotice();
+    if (force || s !== sig) {
+      sig = s;
+      const map = new Map();
+      repos.forEach((r) => {
+        if (!r.Militaire || r.Jour == null) return;
+        map.set(r.Militaire + '|' + key(r.Jour * 1000), { id: r.id, Code: r.Code || '', Mention: r.Mention || '' });
+      });
+      DATA = {
+        pers: pers
+          .filter((p) => p.Actif !== false && p.Nom)
+          .sort((a, b) => String(a.Nom).localeCompare(String(b.Nom), 'fr')),
+        repos: map,
+      };
+      render();
+    }
+    const now = new Date();
+    $('updated').textContent = 'Mis à jour à ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+  } catch (e) {
+    console.error(e);
+    showNotice(friendlyError(e));
+  }
+}
+
+/* ---------- Affichage ---------- */
+function render() {
+  const start = START + tr * TRANCHE_DAYS * DAY_MS;
+  const days = [];
+  for (let i = 0; i < TRANCHE_DAYS; i++) days.push(start + i * DAY_MS);
+  const today = todayMs();
+
+  $('tr-label').textContent = 'Du ' + fmtDMY(days[0]) + ' au ' + fmtDMY(days[TRANCHE_DAYS - 1]);
+  $('tr-weeks').textContent = 'Semaines ' + isoWeek(days[0]) + ' à ' + isoWeek(days[TRANCHE_DAYS - 1]);
+
+  const f = filterText.trim().toLowerCase();
+  const rows = DATA.pers.filter((p) => !f || String(p.Nom).toLowerCase().includes(f));
+  const nbWeeks = TRANCHE_DAYS / 7;
+
+  let h = '<table class="tbl"><thead><tr>';
+  h += '<th class="corner sticky-l" rowspan="2">Militaire</th>';
+  for (let w = 0; w < nbWeeks; w++) {
+    h += '<th class="wk mon" colspan="7">SEMAINE ' + isoWeek(days[w * 7]) + '</th>';
+  }
+  h += '<th class="corner sticky-r" rowspan="2">Week-ends<small>R · RR · P · RPC</small></th></tr><tr>';
+  days.forEach((ms, i) => {
+    const d = dow(ms);
+    h += '<th class="dh' + (d >= 5 ? ' we' : '') + (ms === today ? ' today' : '') + (d === 0 ? ' mon' : '') + '">' +
+         '<b>' + JL[d] + '</b><span>' + fmtDM(ms) + '</span></th>';
+  });
+  h += '</tr></thead><tbody>';
+
+  if (!rows.length) {
+    h += '<tr><td class="empty" colspan="' + (TRANCHE_DAYS + 2) + '">' +
+         (DATA.pers.length ? 'Aucun militaire ne correspond à la recherche.' :
+          'Aucun militaire à afficher. Ajoutez des noms dans la table Personnel et cochez « Actif ».') +
+         '</td></tr>';
+  }
+
+  rows.forEach((p) => {
+    let occupied = 0;
+    h += '<tr><td class="name sticky-l" title="' + esc(p.Nom) + '">' + esc(p.Nom) + '</td>';
+    for (let w = 0; w < nbWeeks; w++) {
+      let weekendBusy = false;
+      for (let j = 0; j < 7; j++) {
+        const ms = days[w * 7 + j];
+        const k = key(ms);
+        const rec = DATA.repos.get(p.id + '|' + k);
+        const code = rec && CODES.includes(rec.Code) ? rec.Code : '';
+        const mention = rec ? rec.Mention : '';
+        if (j >= 5 && WE_CODES.includes(code)) weekendBusy = true;
+        const cls = 'cell' + (j >= 5 ? ' we' : '') + (ms === today ? ' today' : '') + (j === 0 ? ' mon' : '') +
+                    (code ? ' code-' + code : '');
+        const tip = JLONG[j] + ' ' + fmtDMY(ms) + (code ? ' · ' + code : '') + (mention ? ' · ' + mention : '');
+        h += '<td class="' + cls + '" data-m="' + p.id + '" data-d="' + k + '" title="' + esc(tip) + '">' +
+             (code ? '<span class="c">' + code + '</span>' : '') +
+             (mention ? '<span class="mt">' + esc(mention) + '</span>' : '') + '</td>';
+      }
+      if (weekendBusy) occupied++;
+    }
+    h += '<td class="count sticky-r"><span class="n">' + occupied + '</span><span class="of"> / ' + nbWeeks + '</span></td></tr>';
+  });
+  h += '</tbody></table>';
+  $('grid').innerHTML = h;
+}
+
+/* ---------- Navigation ---------- */
+$('prev').addEventListener('click', () => { tr--; render(); });
+$('next').addEventListener('click', () => { tr++; render(); });
+$('tr-now').addEventListener('click', () => { tr = currentTranche(); render(); });
+$('filter').addEventListener('input', (e) => { filterText = e.target.value; render(); });
+$('refresh').addEventListener('click', () => refreshAll(true));
+
+/* ---------- Saisie ---------- */
+let edit = null;   // { m, k, code }
+
+$('grid').addEventListener('click', (e) => {
+  const td = e.target.closest('td.cell');
+  if (!td) return;
+  openEditor(Number(td.dataset.m), td.dataset.d);
+});
+
+function openEditor(m, k) {
+  const p = DATA.pers.find((x) => x.id === m);
+  if (!p) return;
+  const ms = Date.parse(k + 'T00:00:00Z');
+  const rec = DATA.repos.get(m + '|' + k);
+  edit = { m, k, code: rec && CODES.includes(rec.Code) ? rec.Code : '' };
+  $('m-title').textContent = JLONG[dow(ms)] + ' ' + fmtDMY(ms);
+  $('m-who').textContent = p.Nom;
+  $('m-mention').value = rec ? rec.Mention : '';
+  $('m-until').value = '';
+  $('m-until').min = k;
+  $('m-msg').className = 'msg';
+  markCode();
+  $('overlay').classList.add('show');
+  $('m-mention').focus();
+}
+function markCode() {
+  document.querySelectorAll('#m-codes button').forEach((b) =>
+    b.classList.toggle('sel', b.dataset.code === edit.code));
+}
+function closeEditor() { $('overlay').classList.remove('show'); edit = null; }
+
+$('m-codes').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b || !edit) return;
+  edit.code = b.dataset.code;
+  markCode();
+});
+$('m-cancel').addEventListener('click', closeEditor);
+$('overlay').addEventListener('click', (e) => { if (e.target === $('overlay')) closeEditor(); });
+document.addEventListener('keydown', (e) => {
+  if (!edit) return;
+  if (e.key === 'Escape') closeEditor();
+  if (e.key === 'Enter' && e.target && e.target.id === 'm-mention') $('m-save').click();
+});
+
+$('m-save').addEventListener('click', async () => {
+  if (!edit) return;
+  const btn = $('m-save');
+  const msg = $('m-msg');
+  msg.className = 'msg';
+  const code = edit.code;
+  const mention = $('m-mention').value.trim();
+  const startMs = Date.parse(edit.k + 'T00:00:00Z');
+  let endMs = startMs;
+  const until = $('m-until').value;
+  if (until) {
+    endMs = Date.parse(until + 'T00:00:00Z');
+    if (isNaN(endMs) || endMs < startMs) {
+      msg.textContent = 'La date de fin doit être égale ou postérieure au jour choisi.';
+      msg.className = 'msg show';
+      return;
+    }
+    if ((endMs - startMs) / DAY_MS > 90) {
+      msg.textContent = 'La période est limitée à 90 jours.';
+      msg.className = 'msg show';
+      return;
+    }
+  }
+  const actions = [];
+  for (let ms = startMs; ms <= endMs; ms += DAY_MS) {
+    const k = key(ms);
+    const rec = DATA.repos.get(edit.m + '|' + k);
+    if (rec) {
+      if (!code && !mention) actions.push(['RemoveRecord', 'Repos', rec.id]);
+      else actions.push(['UpdateRecord', 'Repos', rec.id, { Code: code, Mention: mention }]);
+    } else if (code || mention) {
+      actions.push(['AddRecord', 'Repos', null, { Militaire: edit.m, Jour: ms / 1000, Code: code, Mention: mention }]);
+    }
+  }
+  btn.disabled = true;
+  try {
+    if (actions.length) await grist.docApi.applyUserActions(actions);
+    closeEditor();
+    toast(actions.length > 1 ? 'Enregistré sur ' + actions.length + ' jours' : 'Enregistré');
+    await refreshAll(true);
+  } catch (err) {
+    console.error(err);
+    msg.textContent = friendlyError(err);
+    msg.className = 'msg show';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ---------- Démarrage ---------- */
+$('today-label').textContent = new Date().toLocaleDateString('fr-FR',
+  { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+tr = currentTranche();
+refreshAll(true);
+setInterval(() => { if (!edit) refreshAll(false); }, 20000);
+</script>
+</body>
+</html>
